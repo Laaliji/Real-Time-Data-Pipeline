@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+  cassandra:
+    image: cassandra:4.1.4
+    container_name: cassandra
+    ports:
+      - "9042:9042"
+    volumes:
+      - ./jmx_prometheus_javaagent-0.3.0.jar:/jmx_prometheus_javaagent.jar
+      - ./cassandra.yml:/etc/cassandra-exporter.yaml
+    environment:
+      JVM_OPTS: "-javaagent:/jmx_prometheus_javaagent.jar=7070:/etc/cassandra-exporter.yaml"
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+
+  prometheus:
+    image: prom/prometheus:v2.30.3
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.7.0
+    container_name: node-exporter
+    command: "--path.rootfs=/host"
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - /:/host:ro,rslave
+
